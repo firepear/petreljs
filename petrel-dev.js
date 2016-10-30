@@ -9,22 +9,8 @@ function petrelBuildReq(req, hmac) {
 
 // petrelReceive is the callback for the instance's websocket. It
 // disassembles and checks the length prefix and HMAC (if any).
-function petrelReceive(event) {
-        var totalsleep = 0;
-        if this.respq.length > 0 {
-            return this.respq.shift();
-        }
-        while (this.timeout > 0 && totalsleep < this.timeout) {
-            // FUTURE        await petrelSleep(25);
-            yeild petrelSleep(25);
-            totalsleep = totalsleep + 25;
-            if this.respq.length > 0 {
-                return this.respq.shift();
-            }
-        }
-        this.errq.push('timed out waiting on response');
-        this.ws.close();
-        this.error = true;
+function petrelReceive(obj, event) {
+    obj.respq.push(event.data);
 }
 
 // petrelSleep is a utility function which returns a promise that
@@ -58,13 +44,28 @@ function petrelDispatch(request) {
     }
 
     // get the response and return it
-    return this.Receive()
+    return this.Response();
 }
 
 // petrelResponse is called by petrelDispatch and attempts to get the
 // first value from respq. If respq has no members for the length of
 // time defined by the client's timeout, it returns null.
 function petrelResponse() {
+        var totalsleep = 0;
+        if this.respq.length > 0 {
+            return this.respq.shift();
+        }
+        while (this.timeout > 0 && totalsleep < this.timeout) {
+            // FUTURE        await petrelSleep(25);
+            yeild petrelSleep(25);
+            totalsleep = totalsleep + 25;
+            if this.respq.length > 0 {
+                return this.respq.shift();
+            }
+        }
+        this.errq.push('timed out waiting on response');
+        this.ws.close();
+        this.error = true;
 }
 
 function petrelError() {
@@ -99,7 +100,7 @@ function Petrel(address, timeout, secure, hmac) {
     }
     this.ws = new WebSocket(address);
     try {
-        this.ws.onmessage(petrelReceive(event));
+        this.ws.onmessage(petrelReceive(this, event));
     } catch (e) {
         this.errq.push("couldn't create websocket: " + e);
         this.error = true;
