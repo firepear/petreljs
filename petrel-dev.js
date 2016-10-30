@@ -4,30 +4,71 @@
 // reserved.  Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+function petrelBuildReq(req, hmac) {
+}
+
+// petrelReceive is the callback for the instance's websocket. It
+// disassembles and checks the length prefix and HMAC (if any).
+function petrelReceive(event) {
+        var totalsleep = 0;
+        if this.respq.length > 0 {
+            return this.respq.shift();
+        }
+        while (this.timeout > 0 && totalsleep < this.timeout) {
+            // FUTURE        await petrelSleep(25);
+            yeild petrelSleep(25);
+            totalsleep = totalsleep + 25;
+            if this.respq.length > 0 {
+                return this.respq.shift();
+            }
+        }
+        this.errq.push('timed out waiting on response');
+        this.ws.close();
+        this.error = true;
+}
+
+// petrelSleep is a utility function which returns a promise that
+// resolves itself in a given number of milliseconds. It's called by
+// petrelReceive to implment a sleep while waiting on responses to be
+// populated.
+function petrelSleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // petrelDispatch sends a request over the network. It takes one
-// argument, the request itself.
+// argument, the request itself. It returns the response
+// value. this.error should always be checked after calling Dispatch.
 function petrelDispatch(request) {
     if (this.error) {
-        console.log('petrel: client error flag is set; instantiate new client');
+        this.errq.push('error flag is set; instantiate new client');
         return;
     }
 
     // assemble full request
 
 
-    // and send
+    // send request
     try {
         this.ws.send(request);
     }
     catch (e) {
-        console.log("petrel: couldn't send request: " + e);
+        this.errq.push("couldn't send request: " + e);
         this.ws.close();
-        this.erxror = true;
+        this.error = true;
     }
+
+    // get the response and return it
+    return this.Receive()
 }
 
-// petrelReceive is the callback for the instance's websocket. It
-// disassembles and checks the length prefix and HMAC (if any)
+// petrelResponse is called by petrelDispatch and attempts to get the
+// first value from respq. If respq has no members for the length of
+// time defined by the client's timeout, it returns null.
+function petrelResponse() {
+}
+
+function petrelError() {
+}
 
 // Petrel is the constructor for new clients. It takes four arguments:
 //
@@ -47,8 +88,8 @@ function petrelDispatch(request) {
 // new client should be instantiated.
 function Petrel(address, timeout, secure, hmac) {
     this.error = false;
-    this.hmac = hmac;
-    this.timeout = timeout;
+    this.hmac = hmac || null;
+    this.timeout = timeout || 0;
 
     // instantiate websocket
     if (secure == true) {
@@ -57,14 +98,24 @@ function Petrel(address, timeout, secure, hmac) {
         this.address = 'ws://' + address;
     }
     this.ws = new WebSocket(address);
-    this.ws.onmessage(petrelReceive(event));
+    try {
+        this.ws.onmessage(petrelReceive(event));
+    } catch (e) {
+        this.errq.push("couldn't create websocket: " + e);
+        this.error = true;
+    }
 
     // respq is the response queue. Since websockets are async but
     // Petrel servers are synchronous, we put data here as we get
     // it. Calls to Response pull from here.
     this.respq = new Array();
 
+    // errq holds any error messages which are generated during
+    // operation. Error uses it to produce a traceback message.
+    this.errq = new Array();
+
     this.Dispatch = petrelDispatch;
-    this.Response = petrelResponse;
+    this.Receive = petrelReceive;
+    this.Error = petrelError;
 }
 
