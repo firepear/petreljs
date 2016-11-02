@@ -10,13 +10,14 @@ function petrelBuildReq(req, hmac) {
 // petrelReceive is the callback for the instance's websocket. It
 // disassembles and checks the length prefix and HMAC (if any).
 function petrelReceive(obj, event) {
-    obj.respq.push(event.data);
+    //obj.respq.push(event.data);
 }
 
-// petrelDispatch sends a request over the network. It takes one
-// argument, the request itself. It returns the response
-// value. this.error should always be checked after calling Dispatch.
-function petrelDispatch(request) {
+// petrelDispatch sends a request over the network. It takes two
+// arguments: the request message, and the function which should be
+// called when the response is received. petrel.error should always be
+// checked after calling Dispatch.
+function petrelDispatch(request, callback) {
     if (this.error) {
         this.errq.push('error flag is set; instantiate new client');
         return;
@@ -24,6 +25,7 @@ function petrelDispatch(request) {
 
     // assemble full request
 
+    // put req data into reqq (seq, timestamp, callback)
 
     // send request
     try {
