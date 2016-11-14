@@ -1,9 +1,31 @@
 <html>
   <head>
     <script src="./demo/sha256.js"></script>
-    <script src="petrel-dev.js" type="module"></script>
+    <script src="petrel-dev.js"></script>
     <script>
-    </script>
+function testHeader(msg) {
+    console.log("-------------------------------------");
+    console.log(msg);
+    console.log("-------------------------------------");
+}
+
+function test(msg, a, b) {
+    if (a == b) {
+        console.log(msg + " - PASS");
+    } else {
+        console.log(msg + " - FAIL: '" + a + "', '" + b + "'");
+        throw '';
+    }
+}
+
+testHeader("1 - Instantiate empty Petrel obj");
+p = new Petrel();
+test("p.error should initialize to false", p.error, false);
+test("p.hmac should initialize to null", p.hmac, null);
+test("p.timeout should initialize to 0", p.timeout, 0);
+test("p.ws should initialize to undefined", p.ws, undefined);
+test("p.seq should initialize to 0", p.seq, 0);
+  </script>
   </head>
   <body>
   </body>
