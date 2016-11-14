@@ -57,7 +57,7 @@ function petrelDispatch(request, callback) {
     // put req data into reqq (seq, timestamp, callback)
 
     // send request
-    if this.ws != undefined {
+    if (this.ws != undefined) {
         try {
             this.ws.send(request);
         }
