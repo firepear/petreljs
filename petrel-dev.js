@@ -19,7 +19,7 @@ function petrelReceive(obj, event) {
 // checked after calling Dispatch.
 function petrelDispatch(request, callback) {
     if (this.error) {
-        this.errq.push('error flag is set; instantiate new client');
+        this.errq.push("can't dispatch request: error flag is set");
         return;
     }
 
@@ -74,6 +74,7 @@ function Petrel(address, timeout, secure, hmac) {
     // operation. Error uses it to produce a traceback message.
     this.errq = new Array();
 
+    // assign methods
     this.Dispatch = petrelDispatch;
     this.Receive = petrelReceive;
     this.Error = petrelError;
