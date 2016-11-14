@@ -4,9 +4,7 @@
     <script src="petrel-dev.js"></script>
     <script>
 function testHeader(msg) {
-    console.log("-------------------------------------");
-    console.log(msg);
-    console.log("-------------------------------------");
+    console.log("-------------------------------------\n",msg,"\n-------------------------------------");
 }
 
 function test(msg, a, b) {
@@ -28,5 +26,6 @@ test("p.seq should initialize to 0", p.seq, 0);
   </script>
   </head>
   <body>
+    Test results are in the Javascript console.
   </body>
 </html>
