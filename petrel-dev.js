@@ -57,17 +57,16 @@ function petrelDispatch(request, callback) {
     // put req data into reqq (seq, timestamp, callback)
 
     // send request
-    try {
-        this.ws.send(request);
+    if this.ws != undefined {
+        try {
+            this.ws.send(request);
+        }
+        catch (e) {
+            this.errq.push("couldn't send request: " + e);
+            this.ws.close();
+            this.error = true;
+        }
     }
-    catch (e) {
-        this.errq.push("couldn't send request: " + e);
-        this.ws.close();
-        this.error = true;
-    }
-
-    // get the response and return it
-    return this.Response();
 }
 
 // petrelReceive is the callback for the instance's websocket. It

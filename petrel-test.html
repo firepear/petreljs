@@ -23,7 +23,11 @@ test("p.hmac should initialize to null", p.hmac, null);
 test("p.timeout should initialize to 0", p.timeout, 0);
 test("p.ws should initialize to undefined", p.ws, undefined);
 test("p.seq should initialize to 0", p.seq, 0);
-  </script>
+test("p.reqq have length zero", p.reqq.length, 0);
+test("p.errq have length zero", p.errq.length, 0);
+
+testHeader("2 - Instantiate empty Petrel obj");
+</script>
   </head>
   <body>
     Test results are in the Javascript console.
