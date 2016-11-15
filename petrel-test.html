@@ -3,13 +3,25 @@
     <script src="./demo/sha256.js"></script>
     <script src="petrel-dev.js"></script>
     <script>
+var testcount = 0;
+var passcount = 0;
 function testHeader(msg) {
     console.log("-".repeat(72) + "\n" + msg + "\n" + "-".repeat(72));
 }
 
+function testResults() {
+    if (passcount == testcount) {
+        console.log("-".repeat(72) + "\n" + "All tests passing");
+    } else {
+        console.log("-".repeat(72) + "\n" + passcount + "/" + testcount + " tests passing");
+    }
+}
+
 function test(msg, a, b) {
+    testcount++;
     if (a == b) {
         console.log(msg + " - PASS");
+        passcount++;
     } else {
         console.log(msg + " - FAIL: '" + a + "', '" + b + "'");
         throw '';
@@ -17,7 +29,7 @@ function test(msg, a, b) {
 }
 
 testHeader("1 - Instantiate empty Petrel obj");
-p = new Petrel();
+var p = new Petrel();
 test("p.error should initialize to false", p.error, false);
 test("p.hmac should initialize to null", p.hmac, null);
 test("p.timeout should initialize to 0", p.timeout, 0);
@@ -27,6 +39,16 @@ test("p.reqq have length zero", p.reqq.length, 0);
 test("p.errq have length zero", p.errq.length, 0);
 
 testHeader("2 - Instantiate non-default Petrel obj");
+p = new Petrel(50, "foo");
+test("p.error should initialize to false", p.error, false);
+test("p.hmac should initialize to 'foo'", p.hmac, "foo");
+test("p.timeout should initialize to 50", p.timeout, 50);
+test("p.ws should initialize to undefined", p.ws, undefined);
+test("p.seq should initialize to 0", p.seq, 0);
+test("p.reqq have length zero", p.reqq.length, 0);
+test("p.errq have length zero", p.errq.length, 0);
+
+testResults();
 </script>
   </head>
   <body>

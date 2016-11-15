@@ -4,22 +4,20 @@
 // reserved.  Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Petrel is the constructor for new clients. It takes four arguments:
-//
-//     * The remote address to connect to.
+// Petrel is the constructor for new clients. It takes three arguments:
 //
 //     * The number of milliseconds to wait for a response from the
-//     * server before giving up.
+//       server before giving up.
 //
 //     * The optional HMAC secret key. HMAC will be enabled for any
 //       value other than the empty string.
 //
-//     * A websocket instance.
+//     * A websocket instance. The websocket should be 
 //
 // When any error occurs, the client's websocket is closed and
 // this.error is set to true. No work will be done after this, and a
 // new client should be instantiated.
-function Petrel(address, timeout, hmac, ws) {
+function Petrel(timeout, hmac, ws) {
     this.error = false;
     this.hmac = hmac || null;
     this.timeout = timeout || 0;
