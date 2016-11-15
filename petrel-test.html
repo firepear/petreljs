@@ -14,11 +14,22 @@ function testResults() {
         console.log("-".repeat(72) + "\n" + "All tests passing");
     } else {
         console.log("-".repeat(72) + "\n" + passcount + "/" + testcount + " tests passing");
+        // TODO - something smarter
     }
 }
 
-function test(msg, a, b) {
+function test(msg, a, b, invert) {
     testcount++;
+    if (invert == true) {
+        if (a != b) {
+            console.log(msg + " - PASS");
+            passcount++;
+        } else {
+            console.log(msg + " - FAIL: '" + a + "', '" + b + "'");
+            throw '';
+        }
+        return;
+    }
     if (a == b) {
         console.log(msg + " - PASS");
         passcount++;
@@ -35,8 +46,8 @@ test("p.hmac should initialize to null", p.hmac, null);
 test("p.timeout should initialize to 0", p.timeout, 0);
 test("p.ws should initialize to undefined", p.ws, undefined);
 test("p.seq should initialize to 0", p.seq, 0);
-test("p.reqq have length zero", p.reqq.length, 0);
-test("p.errq have length zero", p.errq.length, 0);
+test("p.reqq should have length zero", p.reqq.length, 0);
+test("p.errq should have length zero", p.errq.length, 0);
 
 testHeader("2 - Instantiate non-default Petrel obj");
 p = new Petrel(50, "foo");
@@ -45,8 +56,15 @@ test("p.hmac should initialize to 'foo'", p.hmac, "foo");
 test("p.timeout should initialize to 50", p.timeout, 50);
 test("p.ws should initialize to undefined", p.ws, undefined);
 test("p.seq should initialize to 0", p.seq, 0);
-test("p.reqq have length zero", p.reqq.length, 0);
-test("p.errq have length zero", p.errq.length, 0);
+test("p.reqq should have length zero", p.reqq.length, 0);
+test("p.errq should have length zero", p.errq.length, 0);
+
+testHeader("3 - Message marshalling");
+p = new Petrel();
+msg = petrelMarshal(p, "hello, world");
+test("p.errq should have length zero", p.errq.length, 0);
+test("msg should be defined", msg, undefined, true);
+test("msg.size should be 21 (4+4+1+12)", msg.size, 21);
 
 testResults();
 </script>

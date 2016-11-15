@@ -12,7 +12,8 @@
 //     * The optional HMAC secret key. HMAC will be enabled for any
 //       value other than the empty string.
 //
-//     * A websocket instance. The websocket should be 
+//     * A live websocket instance, connected to the desired server
+//       endpoint.
 //
 // When any error occurs, the client's websocket is closed and
 // this.error is set to true. No work will be done after this, and a
@@ -23,6 +24,7 @@ function Petrel(timeout, hmac, ws) {
     this.timeout = timeout || 0;
     this.ws = ws;
     this.seq = 0;
+    this.pver = 0;
 
     // reqq is the request queue. When a request is dispatched,
     // information about it is stored here for retrieval when the
@@ -77,8 +79,46 @@ function petrelError() {
 
 //////////////////////////////////////////////////// Utility functions
 
-function petrelMarshal(p, msg) {
+// petrelMarshal generates a Petrel message for transmission. It
+// accepts two arguments: a petreljs instance, and the payload to be
+// encapsulated as a message. It returns the message to be sent over
+// the wire, which will be a Blob.
+function petrelMarshal(p, payload) {
+    // we need ArrayBuffers to hold binary encodings of our sequence
+    // id, payload length, and protocol version.
+    seq = new ArrayBuffer(4);
+    plen = new ArrayBuffer(4);
+    pver = new ArrayBuffer(1);
+    // then uintNArrays to serve as "views", allowing us to store ints
+    // of the approptiate sizes in the ArrayBuffers.
+    try {
+        seqv = new Uint32Array(seq);
+        plenv = new Uint32Array(plen);
+        pverv = new Uint8Array(pver);
+    }
+    catch (e) {
+        p.errq.push(e);
+        return;
+    }
+    // now we slot our actual values into the views
+    try {
+        seqv[0] = p.seq;
+        plenv[0] = payload.length;
+        pverv[0] = p.pver;
+    }
+    catch (e) {
+        p.errq.push(e);
+        return;
+    }
+    // finally, create a Blob and load it with data
+    // TODO: HMAC
+    msg = new Blob([seq, plen, pver, payload]);
+    return msg;
 }
 
+// petrelUnmarshal unencapsulates a Petrel message in wire format. It
+// accepts two arguments: a petreljs instance, and the raw message
+// Blob to be unmarshalled. It returns an instance of petrelMsg which
+// contains all the data from the received message.
 function petrelUnmarshal(p, msg) {
 }
