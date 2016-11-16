@@ -65,6 +65,30 @@ msg = petrelMarshal(p, "hello, world");
 test("p.errq should have length zero", p.errq.length, 0);
 test("msg should be defined", msg, undefined, true);
 test("msg.size should be 21 (4+4+1+12)", msg.size, 21);
+testHeader("3b - Marshalling failure");
+p.seq = 1;
+p.pver = "foo";
+msg = petrelMarshal(p, "hello, world");
+console.log(msg);
+r = new FileReader();
+x1 = msg.slice(8,9);
+console.log(x1);
+r.readAsArrayBuffer(x1);
+x2 = r.result;
+console.log(x2);
+x2 = r.result;
+console.log(x2);
+x3 = new Uint8Array(x2);
+x2 = r.result;
+console.log(x2);
+console.log(x3[0]);
+x1 = msg.slice(9,21);
+r.readAsTex(tx1)
+console.log(r.result);
+test("p.errq should have length 1", p.errq.length, 1);
+console.log(p.errq[0]);
+test("msg should be undefined", msg, undefined);
+
 
 testResults();
 </script>
