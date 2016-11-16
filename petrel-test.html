@@ -41,56 +41,69 @@ function test(msg, a, b, invert) {
 
 testHeader("1 - Instantiate empty Petrel obj");
 var p = new Petrel();
-test("p.error should initialize to false", p.error, false);
-test("p.hmac should initialize to null", p.hmac, null);
-test("p.timeout should initialize to 0", p.timeout, 0);
-test("p.ws should initialize to undefined", p.ws, undefined);
-test("p.seq should initialize to 0", p.seq, 0);
-test("p.reqq should have length zero", p.reqq.length, 0);
-test("p.errq should have length zero", p.errq.length, 0);
+test("1.1 p.error should initialize to false", p.error, false);
+test("1.2 p.hmac should initialize to null", p.hmac, null);
+test("1.3 p.timeout should initialize to 0", p.timeout, 0);
+test("1.4 p.ws should initialize to undefined", p.ws, undefined);
+test("1.5 p.seq should initialize to 0", p.seq, 0);
+test("1.6 p.reqq should have length zero", p.reqq.length, 0);
+test("1.7 p.errq should have length zero", p.errq.length, 0);
 
 testHeader("2 - Instantiate non-default Petrel obj");
 p = new Petrel(50, "foo");
-test("p.error should initialize to false", p.error, false);
-test("p.hmac should initialize to 'foo'", p.hmac, "foo");
-test("p.timeout should initialize to 50", p.timeout, 50);
-test("p.ws should initialize to undefined", p.ws, undefined);
-test("p.seq should initialize to 0", p.seq, 0);
-test("p.reqq should have length zero", p.reqq.length, 0);
-test("p.errq should have length zero", p.errq.length, 0);
+test("2.1 p.error should initialize to false", p.error, false);
+test("2.2 p.hmac should initialize to 'foo'", p.hmac, "foo");
+test("2.3 p.timeout should initialize to 50", p.timeout, 50);
+test("2.4 p.ws should initialize to undefined", p.ws, undefined);
+test("2.5 p.seq should initialize to 0", p.seq, 0);
+test("2.6 p.reqq should have length zero", p.reqq.length, 0);
+test("2.7 p.errq should have length zero", p.errq.length, 0);
 
 testHeader("3 - Message marshalling");
 p = new Petrel();
 msg = petrelMarshal(p, "hello, world");
-test("p.errq should have length zero", p.errq.length, 0);
-test("msg should be defined", msg, undefined, true);
-test("msg.size should be 21 (4+4+1+12)", msg.size, 21);
-testHeader("3b - Marshalling failure");
+test("3.1 p.errq should have length zero", p.errq.length, 0);
+test("3.2 msg should be defined", msg, undefined, true);
+test("3.3 msg.size should be 21 (4+4+1+12)", msg.size, 21);
 p.seq = 1;
-p.pver = "foo";
 msg = petrelMarshal(p, "hello, world");
-console.log(msg);
-r = new FileReader();
+
+x1 = msg.slice(0,4);
+r1 = new FileReader();
+r1.onload = function(evt) {
+    x2 = evt.target.result;
+    x3 = new Uint32Array(x2);
+    test("3.4 seq should be 1", x3[0], 1);
+}
+r1.readAsArrayBuffer(x1);
+
+x1 = msg.slice(4,8);
+r2 = new FileReader();
+r2.onload = function(evt) {
+    x2 = evt.target.result;
+    x3 = new Uint32Array(x2);
+    test("3.5 plen should be 12", x3[0], 12);
+}
+r2.readAsArrayBuffer(x1);
+
 x1 = msg.slice(8,9);
-console.log(x1);
-r.readAsArrayBuffer(x1);
-x2 = r.result;
-console.log(x2);
-x2 = r.result;
-console.log(x2);
-x3 = new Uint8Array(x2);
-x2 = r.result;
-console.log(x2);
-console.log(x3[0]);
+r3 = new FileReader();
+r3.onload = function(evt) {
+    x2 = evt.target.result;
+    x3 = new Uint8Array(x2);
+    test("3.6 pver should be 0", x3[0], 0);
+}
+r3.readAsArrayBuffer(x1);
+
 x1 = msg.slice(9,21);
-r.readAsTex(tx1)
-console.log(r.result);
-test("p.errq should have length 1", p.errq.length, 1);
-console.log(p.errq[0]);
-test("msg should be undefined", msg, undefined);
+r4 = new FileReader();
+r4.onload = function(evt) {
+    x2 = evt.target.result;
+    test("3.7 payload should be 'hello, world'", x2, "hello, world");
+}
+r4.readAsText(x1);
 
-
-testResults();
+//testResults();
 </script>
   </head>
   <body>
