@@ -30,6 +30,7 @@ function Petrel(timeout, hmac, ws) {
     // information about it is stored here for retrieval when the
     // websocket callback fires.
     this.reqq = new Array();
+    this.respq = new Array();
 
     // errq holds any error messages which are generated during
     // operation. Error uses it to produce a traceback message.
@@ -40,6 +41,26 @@ function Petrel(timeout, hmac, ws) {
     this.Error = petrelError;
 
     return this;
+}
+
+function PetrelMsg() {
+    this.seq = null;
+    this.plen = null;
+    this.pver = null;
+    this.payload = null;
+    this.hmac = false;
+    this.complete = msgComplete;
+    return this;
+}
+
+function msgComplete() {
+    if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
+        return false;
+    }
+    if (this.hmac == false) {
+        return false;
+    }
+    return true;
 }
 
 // petrelDispatch sends a request over the network. It takes two
@@ -86,15 +107,15 @@ function petrelError() {
 function petrelMarshal(p, payload) {
     // we need ArrayBuffers to hold binary encodings of our sequence
     // id, payload length, and protocol version.
-    seq = new ArrayBuffer(4);
-    plen = new ArrayBuffer(4);
-    pver = new ArrayBuffer(1);
+    var seq = new ArrayBuffer(4);
+    var plen = new ArrayBuffer(4);
+    var pver = new ArrayBuffer(1);
     // then uintNArrays to serve as "views", allowing us to store ints
     // of the approptiate sizes in the ArrayBuffers.
     try {
-        seqv = new Uint32Array(seq);
-        plenv = new Uint32Array(plen);
-        pverv = new Uint8Array(pver);
+        var seqv = new Uint32Array(seq);
+        var plenv = new Uint32Array(plen);
+        var pverv = new Uint8Array(pver);
     }
     catch (e) {
         p.errq.push(e);
@@ -112,7 +133,7 @@ function petrelMarshal(p, payload) {
     }
     // finally, create a Blob and load it with data
     // TODO: HMAC
-    msg = new Blob([seq, plen, pver, payload]);
+    var msg = new Blob([seq, plen, pver, payload]);
     return msg;
 }
 
@@ -120,5 +141,53 @@ function petrelMarshal(p, payload) {
 // accepts two arguments: a petreljs instance, and the raw message
 // Blob to be unmarshalled. It returns an instance of petrelMsg which
 // contains all the data from the received message.
-function petrelUnmarshal(p, msg) {
+function petrelUnmarshal(p, msgBlob) {
+    // first, create a Msg object for the FileReaders to work on and
+    // set the default location for the head of the payload
+    var msg = new PetrelMsg();
+    var payloadStart = 9;
+    // then slice up the message
+    var seqBlob = msgBlob.slice(0, 4);
+    var pverBlob = msgBlob.slice(8, 9);
+    var plenblob = msgBlob.slice(4, 8);
+    if (p.hmac != null) {
+        var macBlob = msgBlob.slice(9, 41);
+        payloadStart = 41;
+    }
+    // create our FileReaders and set handlers
+    var seqReader = new FileReader();
+    seqReader.onload = function(evt) {
+        msg.seq = new Uint32Array(evt.target.result)[0];
+        if (msg.complete()) {
+            p.respq.push(msg);
+        }
+    };
+    var pverReader = new FileReader()
+    pverReader.onload = function(evt) {
+        msg.pver = new Uint8Array(evt.target.result)[0];
+        if (msg.complete()) {
+            p.respq.push(msg);
+        }
+    };
+    var plenReader = new FileReader();
+    seqReader.onload = function(evt) {
+        msg.plen = new Uint32Array(evt.target.result)[0];
+        // launch the hmac handler if needed
+        if (p.hmac == null) {
+            msg.hmac = true;
+        } else {
+            
+        }
+        // launch the payload handler
+        payloadRaw = msgBlob.slice(payloadStart, payloadStart + msg.plen);
+        payloadReader = new FileReader();
+        payloadReader.onload = function(evt) {
+            msg.payload = evt.target.result;
+        }
+        // check for completeness just in case
+        if (msg.complete()) {
+            p.respq.push(msg);
+        }
+    };
+    // finally, call the readers
 }

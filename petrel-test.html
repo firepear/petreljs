@@ -9,15 +9,6 @@ function testHeader(msg) {
     console.log("-".repeat(72) + "\n" + msg + "\n" + "-".repeat(72));
 }
 
-function testResults() {
-    if (passcount == testcount) {
-        console.log("-".repeat(72) + "\n" + "All tests passing");
-    } else {
-        console.log("-".repeat(72) + "\n" + passcount + "/" + testcount + " tests passing");
-        // TODO - something smarter
-    }
-}
-
 function test(msg, a, b, invert) {
     testcount++;
     if (invert == true) {
@@ -74,7 +65,7 @@ r1.onload = function(evt) {
     x2 = evt.target.result;
     x3 = new Uint32Array(x2);
     test("3.4 seq should be 1", x3[0], 1);
-}
+};
 r1.readAsArrayBuffer(x1);
 
 x1 = msg.slice(4,8);
@@ -83,7 +74,7 @@ r2.onload = function(evt) {
     x2 = evt.target.result;
     x3 = new Uint32Array(x2);
     test("3.5 plen should be 12", x3[0], 12);
-}
+};
 r2.readAsArrayBuffer(x1);
 
 x1 = msg.slice(8,9);
@@ -92,7 +83,7 @@ r3.onload = function(evt) {
     x2 = evt.target.result;
     x3 = new Uint8Array(x2);
     test("3.6 pver should be 0", x3[0], 0);
-}
+};
 r3.readAsArrayBuffer(x1);
 
 x1 = msg.slice(9,21);
@@ -100,10 +91,10 @@ r4 = new FileReader();
 r4.onload = function(evt) {
     x2 = evt.target.result;
     test("3.7 payload should be 'hello, world'", x2, "hello, world");
-}
+};
 r4.readAsText(x1);
 
-//testResults();
+// ----------------------------------------------------------  end tests
 </script>
   </head>
   <body>
