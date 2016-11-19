@@ -53,14 +53,16 @@ function PetrelMsg() {
     return this;
 }
 
-function msgComplete() {
-    if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
-        return false;
-    }
+function msgComplete(p) {
     if (this.hmac == false) {
-        return false;
+        return;
     }
-    return true;
+    if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
+        return;
+    }
+    // TODO once this is all working, we'll call the callback from
+    // here. p.respq likely won't exist anymore.
+    p.respq.push(this);
 }
 
 // petrelDispatch sends a request over the network. It takes two
@@ -139,8 +141,10 @@ function petrelMarshal(p, payload) {
 
 // petrelUnmarshal unencapsulates a Petrel message in wire format. It
 // accepts two arguments: a petreljs instance, and the raw message
-// Blob to be unmarshalled. It returns an instance of petrelMsg which
-// contains all the data from the received message.
+// Blob to be unmarshalled.
+//
+// When unmarshalling is done, the callback for the originating
+// request will be called via msg.complete.
 function petrelUnmarshal(p, msgBlob) {
     // first, create a Msg object for the FileReaders to work on and
     // set the default location for the head of the payload
@@ -154,21 +158,20 @@ function petrelUnmarshal(p, msgBlob) {
         var macBlob = msgBlob.slice(9, 41);
         payloadStart = 41;
     }
-    // create our FileReaders and set handlers
+
+    // create our FileReaders and set handlers. first seq.
     var seqReader = new FileReader();
     seqReader.onload = function(evt) {
         msg.seq = new Uint32Array(evt.target.result)[0];
-        if (msg.complete()) {
-            p.respq.push(msg);
-        }
+        msg.complete(p);
     };
+    // then pver
     var pverReader = new FileReader()
     pverReader.onload = function(evt) {
         msg.pver = new Uint8Array(evt.target.result)[0];
-        if (msg.complete()) {
-            p.respq.push(msg);
-        }
+        msg.complete(p);
     };
+    // then plen -- which lets us set up hmac, if needed, and payload.
     var plenReader = new FileReader();
     seqReader.onload = function(evt) {
         msg.plen = new Uint32Array(evt.target.result)[0];
@@ -185,9 +188,7 @@ function petrelUnmarshal(p, msgBlob) {
             msg.payload = evt.target.result;
         }
         // check for completeness just in case
-        if (msg.complete()) {
-            p.respq.push(msg);
-        }
+        msg.complete(p);
     };
     // finally, call the readers
 }
