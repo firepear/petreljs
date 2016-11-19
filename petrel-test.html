@@ -37,7 +37,7 @@ test("1.2 p.hmac should initialize to null", p.hmac, null);
 test("1.3 p.timeout should initialize to 0", p.timeout, 0);
 test("1.4 p.ws should initialize to undefined", p.ws, undefined);
 test("1.5 p.seq should initialize to 0", p.seq, 0);
-test("1.6 p.reqq should have length zero", p.reqq.length, 0);
+test("1.6 p.reqq should have length zero", Object.keys(p.reqq).length, 0);
 test("1.7 p.errq should have length zero", p.errq.length, 0);
 
 testHeader("2 - Instantiate non-default Petrel obj");
@@ -47,7 +47,7 @@ test("2.2 p.hmac should initialize to 'foo'", p.hmac, "foo");
 test("2.3 p.timeout should initialize to 50", p.timeout, 50);
 test("2.4 p.ws should initialize to undefined", p.ws, undefined);
 test("2.5 p.seq should initialize to 0", p.seq, 0);
-test("2.6 p.reqq should have length zero", p.reqq.length, 0);
+test("2.6 p.reqq should have length zero", Object.keys(p.reqq).length, 0);
 test("2.7 p.errq should have length zero", p.errq.length, 0);
 
 testHeader("3 - Message marshalling");
@@ -58,8 +58,7 @@ test("3.2 msg should be defined", msg, undefined, true);
 test("3.3 msg.size should be 21 (4+4+1+12)", msg.size, 21);
 p.seq = 1;
 msg = petrelMarshal(p, "hello, world");
-
-x1 = msg.slice(0,4);
+x1 = msg.slice(0,4); // seq
 r1 = new FileReader();
 r1.onload = function(evt) {
     x2 = evt.target.result;
@@ -67,8 +66,7 @@ r1.onload = function(evt) {
     test("3.4 seq should be 1", x3[0], 1);
 };
 r1.readAsArrayBuffer(x1);
-
-x1 = msg.slice(4,8);
+x1 = msg.slice(4,8); // plen
 r2 = new FileReader();
 r2.onload = function(evt) {
     x2 = evt.target.result;
@@ -76,8 +74,7 @@ r2.onload = function(evt) {
     test("3.5 plen should be 12", x3[0], 12);
 };
 r2.readAsArrayBuffer(x1);
-
-x1 = msg.slice(8,9);
+x1 = msg.slice(8,9); // pver
 r3 = new FileReader();
 r3.onload = function(evt) {
     x2 = evt.target.result;
@@ -85,14 +82,43 @@ r3.onload = function(evt) {
     test("3.6 pver should be 0", x3[0], 0);
 };
 r3.readAsArrayBuffer(x1);
-
-x1 = msg.slice(9,21);
+x1 = msg.slice(9,21); // payloar
 r4 = new FileReader();
 r4.onload = function(evt) {
     x2 = evt.target.result;
     test("3.7 payload should be 'hello, world'", x2, "hello, world");
 };
 r4.readAsText(x1);
+
+testHeader("4 - Message unmarshalling");
+function test4a(m) {
+    test("4.1 msg1.seq is 1", m.seq, 1);
+    test("4.2 msg1.plen is 12", m.plen, 12);
+    test("4.3 msg1.pver is 0", m.pver, 0);
+    test("4.4 msg1.payload is 'hello, world'", m.payload, "hello, world");
+}
+function test4b(m) {
+    test("4.5 msg2.seq is 2", m.seq, 2);
+    test("4.6 msg2.plen is 3", m.plen, 3);
+    test("4.7 msg2.pver is 0", m.pver, 0);
+    test("4.8 msg2.payload is 'foo'", m.payload, "foo");
+}
+function test4c(m) {
+    test("4.9 msg3.seq is 3", m.seq, 3);
+    test("4.10 msg3.plen is 4", m.plen, 4);
+    test("4.11 msg3.pver is 0", m.pver, 0);
+    test("4.12 msg3.payload is 'quux'", m.payload, "quux");
+}
+p.seq++;
+msg2 = petrelMarshal(p, "foo");
+p.seq++;
+msg3 = petrelMarshal(p, "quux");
+p.reqq[1] = test4a; // fake requests and fire unmarshal calls
+petrelUnmarshal(p, msg);
+p.reqq[2] = test4b;
+petrelUnmarshal(p, msg2);
+p.reqq[3] = test4c;
+petrelUnmarshal(p, msg3);
 
 // ----------------------------------------------------------  end tests
 </script>

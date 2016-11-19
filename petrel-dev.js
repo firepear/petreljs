@@ -26,11 +26,10 @@ function Petrel(timeout, hmac, ws) {
     this.seq = 0;
     this.pver = 0;
 
-    // reqq is the request queue. When a request is dispatched,
+    // reqq is the request "queue". When a request is dispatched,
     // information about it is stored here for retrieval when the
     // websocket callback fires.
-    this.reqq = new Array();
-    this.respq = new Array();
+    this.reqq = new Object();
 
     // errq holds any error messages which are generated during
     // operation. Error uses it to produce a traceback message.
@@ -48,21 +47,36 @@ function PetrelMsg() {
     this.plen = null;
     this.pver = null;
     this.payload = null;
-    this.hmac = false;
+    this.hmac = null;
+    this.verifiedmac = false;
     this.complete = msgComplete;
     return this;
 }
 
 function msgComplete(p) {
-    if (this.hmac == false) {
+    if (this.verifiedmac == false) {
         return;
     }
     if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
         return;
     }
-    // TODO once this is all working, we'll call the callback from
-    // here. p.respq likely won't exist anymore.
-    p.respq.push(this);
+    // calculate and compare MAC if needed
+    if (this.hmac != null) {
+        var shaObj = new jsSHA(hashType, "BYTES");
+        shaObj.setHMACKey(p.hmac, "TEXT");
+        shaObj.update(this.payload);
+        var hmac = shaObj.getHMAC("BYTES");
+        // jsSHA does not appear to have a safe compare function for
+        // HMACs, so we'll fake one to avoid timing attacks.
+        // TODO: that thing.
+        // TODO2: error on MAC mismatch
+        if (this.hmac == hmac) {
+            this.verifiedmac = true;
+        }
+    }
+    // invoke the callback for this message
+    // TODO error handling for seq not existing in p.reqq
+    p.reqq[this.seq](this);
 }
 
 // petrelDispatch sends a request over the network. It takes two
@@ -153,7 +167,7 @@ function petrelUnmarshal(p, msgBlob) {
     // then slice up the message
     var seqBlob = msgBlob.slice(0, 4);
     var pverBlob = msgBlob.slice(8, 9);
-    var plenblob = msgBlob.slice(4, 8);
+    var plenBlob = msgBlob.slice(4, 8);
     if (p.hmac != null) {
         var macBlob = msgBlob.slice(9, 41);
         payloadStart = 41;
@@ -173,22 +187,33 @@ function petrelUnmarshal(p, msgBlob) {
     };
     // then plen -- which lets us set up hmac, if needed, and payload.
     var plenReader = new FileReader();
-    seqReader.onload = function(evt) {
+    plenReader.onload = function(evt) {
         msg.plen = new Uint32Array(evt.target.result)[0];
         // launch the hmac handler if needed
         if (p.hmac == null) {
-            msg.hmac = true;
+            msg.verifiedmac = true;
         } else {
-            
+            var macReader = new FileReader();
+            macReader.onload = function(evt) {
+                msg.hmac = evt.target.result;
+                // MAC verification takes place inside msg.complete
+                msg.complete(p);
+            };
+            macReader.readAsBinaryString(macBlob);
         }
         // launch the payload handler
         payloadRaw = msgBlob.slice(payloadStart, payloadStart + msg.plen);
         payloadReader = new FileReader();
         payloadReader.onload = function(evt) {
             msg.payload = evt.target.result;
+            msg.complete(p);
         }
+        payloadReader.readAsText(payloadRaw);
         // check for completeness just in case
         msg.complete(p);
     };
     // finally, call the readers
+    seqReader.readAsArrayBuffer(seqBlob);
+    pverReader.readAsArrayBuffer(pverBlob);
+    plenReader.readAsArrayBuffer(plenBlob);
 }
