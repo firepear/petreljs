@@ -141,6 +141,15 @@ function test5a(m) {
 }
 p.reqq[0] = test5a;
 petrelUnmarshal(p, msg);
+p2 = new Petrel(50, "badkey");  // new instance with different key
+p3 = new Petrel(50, "testkey"); // new instance with original key
+msg2 = petrelMarshal(p2, "test message"); // same message, different hmac
+function test5b(m) {
+    test("5.9 p3.errq should have length 1", p3.errq.length, 1);
+    test("5.10 err should be HMAC mismatch", p3.errq[0], "HMAC mismatch in request 0");
+}
+p3.reqq[0] = test5b;
+petrelUnmarshal(p3, msg2);
 
 testHeader("X - Async test completions follow");
 // ----------------------------------------------------------  end tests
