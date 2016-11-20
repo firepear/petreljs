@@ -147,9 +147,17 @@ function petrelMarshal(p, payload) {
         p.errq.push(e);
         return;
     }
-    // finally, create a Blob and load it with data
-    // TODO: HMAC
-    var msg = new Blob([seq, plen, pver, payload]);
+    // create a Blob and load it with data, generating the MAC if
+    // needed.
+    if (p.hmac != null) {
+        var shaObj = new jsSHA(hashType, "BYTES");
+        shaObj.setHMACKey(p.hmac, "TEXT");
+        shaObj.update(payload);
+        var hmac = shaObj.getHMAC("BYTES");
+        var msg = new Blob([seq, plen, pver, hmac, payload]);
+    } else {
+        var msg = new Blob([seq, plen, pver, payload]);
+    }
     return msg;
 }
 
