@@ -120,6 +120,14 @@ petrelUnmarshal(p, msg2);
 p.reqq[3] = test4c;
 petrelUnmarshal(p, msg3);
 
+testHeader("5 - Message marshalling + HMAC");
+p = new Petrel(50, "testkey");
+test("5.1 p.hmac should be 'testkey'", p.hmac, "testkey");
+msg = petrelMarshal(p, "test message");
+console.log(msg);
+test("5.2 msg should have size 53 (4+4+1+32+12)", msg.size, 53);
+
+testHeader("X - Async test completions follow");
 // ----------------------------------------------------------  end tests
 </script>
   </head>

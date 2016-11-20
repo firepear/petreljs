@@ -49,11 +49,11 @@ function PetrelMsg() {
     this.payload = null;
     this.hmac = null;
     this.verifiedmac = false;
-    this.complete = msgComplete;
+    this.rebuild = msgRebuild;
     return this;
 }
 
-function msgComplete(p) {
+function msgRebuild(p) {
     if (this.verifiedmac == false) {
         return;
     }
@@ -62,14 +62,15 @@ function msgComplete(p) {
     }
     // calculate and compare MAC if needed
     if (this.hmac != null) {
-        var shaObj = new jsSHA(hashType, "BYTES");
+        var shaObj = new jsSHA(hashType, "ARRAYBUFFER");
         shaObj.setHMACKey(p.hmac, "TEXT");
         shaObj.update(this.payload);
-        var hmac = shaObj.getHMAC("BYTES");
+        var hmac = shaObj.getHMAC("ARRAYBUFFER");
         // jsSHA does not appear to have a safe compare function for
         // HMACs, so we'll fake one to avoid timing attacks.
         // TODO: that thing.
         // TODO2: error on MAC mismatch
+        // TODO3: error on pver mismatch
         if (this.hmac == hmac) {
             this.verifiedmac = true;
         }
@@ -150,10 +151,10 @@ function petrelMarshal(p, payload) {
     // create a Blob and load it with data, generating the MAC if
     // needed.
     if (p.hmac != null) {
-        var shaObj = new jsSHA(hashType, "BYTES");
+        var shaObj = new jsSHA("SHA-256", "ARRAYBUFFER");
         shaObj.setHMACKey(p.hmac, "TEXT");
         shaObj.update(payload);
-        var hmac = shaObj.getHMAC("BYTES");
+        var hmac = shaObj.getHMAC("ARRAYBUFFER");
         var msg = new Blob([seq, plen, pver, hmac, payload]);
     } else {
         var msg = new Blob([seq, plen, pver, payload]);
@@ -166,7 +167,7 @@ function petrelMarshal(p, payload) {
 // Blob to be unmarshalled.
 //
 // When unmarshalling is done, the callback for the originating
-// request will be called via msg.complete.
+// request will be called via msg.rebuild.
 function petrelUnmarshal(p, msgBlob) {
     // first, create a Msg object for the FileReaders to work on and
     // set the default location for the head of the payload
@@ -185,13 +186,13 @@ function petrelUnmarshal(p, msgBlob) {
     var seqReader = new FileReader();
     seqReader.onload = function(evt) {
         msg.seq = new Uint32Array(evt.target.result)[0];
-        msg.complete(p);
+        msg.rebuild(p);
     };
     // then pver
     var pverReader = new FileReader()
     pverReader.onload = function(evt) {
         msg.pver = new Uint8Array(evt.target.result)[0];
-        msg.complete(p);
+        msg.rebuild(p);
     };
     // then plen -- which lets us set up hmac, if needed, and payload.
     var plenReader = new FileReader();
@@ -204,8 +205,8 @@ function petrelUnmarshal(p, msgBlob) {
             var macReader = new FileReader();
             macReader.onload = function(evt) {
                 msg.hmac = evt.target.result;
-                // MAC verification takes place inside msg.complete
-                msg.complete(p);
+                // MAC verification takes place inside msg.rebuild
+                msg.rebuild(p);
             };
             macReader.readAsBinaryString(macBlob);
         }
@@ -214,11 +215,11 @@ function petrelUnmarshal(p, msgBlob) {
         payloadReader = new FileReader();
         payloadReader.onload = function(evt) {
             msg.payload = evt.target.result;
-            msg.complete(p);
+            msg.rebuild(p);
         }
         payloadReader.readAsText(payloadRaw);
         // check for completeness just in case
-        msg.complete(p);
+        msg.rebuild(p);
     };
     // finally, call the readers
     seqReader.readAsArrayBuffer(seqBlob);
