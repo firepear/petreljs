@@ -120,12 +120,27 @@ petrelUnmarshal(p, msg2);
 p.reqq[3] = test4c;
 petrelUnmarshal(p, msg3);
 
-testHeader("5 - Message marshalling + HMAC");
+testHeader("5 - Message marshalling/unmarshalling + HMAC");
 p = new Petrel(50, "testkey");
 test("5.1 p.hmac should be 'testkey'", p.hmac, "testkey");
 msg = petrelMarshal(p, "test message");
-console.log(msg);
-test("5.2 msg should have size 53 (4+4+1+32+12)", msg.size, 53);
+test("5.2 msg should have size 65 (4+4+1+44+12)", msg.size, 65);
+x1 = msg.slice(9,53); // hmac
+r1 = new FileReader();
+r1.onload = function(evt) {
+    x2 = evt.target.result;
+    test("5.3 hmac should be 'htwE0CebBpUCKLCF68l2NJxSV+TT276Dt/4wWVvT/Ck='", x2, "htwE0CebBpUCKLCF68l2NJxSV+TT276Dt/4wWVvT/Ck=");
+};
+r1.readAsText(x1);
+function test5a(m) {
+    test("5.4 msg.seq is 0", m.seq, 0);
+    test("5.5 msg.plen is 12", m.plen, 12);
+    test("5.6 msg.pver is 0", m.pver, 0);
+    test("5.7 msg.payload is 'test message'", m.payload, "test message");
+    test("5.8 p.errq should have length zero", p.errq.length, 0);
+}
+p.reqq[0] = test5a;
+petrelUnmarshal(p, msg);
 
 testHeader("X - Async test completions follow");
 // ----------------------------------------------------------  end tests

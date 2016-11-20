@@ -54,27 +54,41 @@ function PetrelMsg() {
 }
 
 function msgRebuild(p) {
-    if (this.verifiedmac == false) {
-        return;
-    }
     if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
         return;
     }
     // calculate and compare MAC if needed
     if (this.hmac != null) {
-        var shaObj = new jsSHA(hashType, "ARRAYBUFFER");
+        var shaObj = new jsSHA("SHA-256", "TEXT");
         shaObj.setHMACKey(p.hmac, "TEXT");
         shaObj.update(this.payload);
-        var hmac = shaObj.getHMAC("ARRAYBUFFER");
+        var calchmac = shaObj.getHMAC("B64");
         // jsSHA does not appear to have a safe compare function for
-        // HMACs, so we'll fake one to avoid timing attacks.
-        // TODO: that thing.
-        // TODO2: error on MAC mismatch
-        // TODO3: error on pver mismatch
-        if (this.hmac == hmac) {
+        // HMACs, so we have to provide that, to avoid timing
+        // attacks.
+        var failed = false;
+        // we do 44 comparisons, one for each character in a HMAC-256
+        // expressed as Base64. this way the comparison should take
+        // roughly the same time, no matter what is passed to us. read
+        // about HMAC timing attacks if you want to know more.
+        for (var i = 0; i < 44; i++) {
+            // being undefined is a mismatch
+            if (this.hmac[i] == undefined || calchmac[i] == undefined) {
+                failed = true;
+            }
+            // and of course a mismatch is a mismatch.
+            if (this.hmac[i] != calchmac[i]) {
+                failed = true;
+            }
+        }
+        if (failed == false) {
             this.verifiedmac = true;
+        } else {
+            p.error = true;
+            p.errq.push("HMAC mismatch in request " + this.seq);
         }
     }
+    // TODO3: error on pver mismatch
     // invoke the callback for this message
     // TODO error handling for seq not existing in p.reqq
     p.reqq[this.seq](this);
@@ -151,10 +165,10 @@ function petrelMarshal(p, payload) {
     // create a Blob and load it with data, generating the MAC if
     // needed.
     if (p.hmac != null) {
-        var shaObj = new jsSHA("SHA-256", "ARRAYBUFFER");
+        var shaObj = new jsSHA("SHA-256", "TEXT");
         shaObj.setHMACKey(p.hmac, "TEXT");
         shaObj.update(payload);
-        var hmac = shaObj.getHMAC("ARRAYBUFFER");
+        var hmac = shaObj.getHMAC("B64");
         var msg = new Blob([seq, plen, pver, hmac, payload]);
     } else {
         var msg = new Blob([seq, plen, pver, payload]);
@@ -178,8 +192,8 @@ function petrelUnmarshal(p, msgBlob) {
     var pverBlob = msgBlob.slice(8, 9);
     var plenBlob = msgBlob.slice(4, 8);
     if (p.hmac != null) {
-        var macBlob = msgBlob.slice(9, 41);
-        payloadStart = 41;
+        var macBlob = msgBlob.slice(9, 53);
+        payloadStart = 53;
     }
 
     // create our FileReaders and set handlers. first seq.
@@ -204,11 +218,11 @@ function petrelUnmarshal(p, msgBlob) {
         } else {
             var macReader = new FileReader();
             macReader.onload = function(evt) {
-                msg.hmac = evt.target.result;
                 // MAC verification takes place inside msg.rebuild
+                msg.hmac = evt.target.result;
                 msg.rebuild(p);
             };
-            macReader.readAsBinaryString(macBlob);
+            macReader.readAsText(macBlob);
         }
         // launch the payload handler
         payloadRaw = msgBlob.slice(payloadStart, payloadStart + msg.plen);
