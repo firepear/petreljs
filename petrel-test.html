@@ -114,11 +114,11 @@ msg2 = petrelMarshal(p, "foo");
 p.seq++;
 msg3 = petrelMarshal(p, "quux");
 p.reqq[1] = test4a; // fake requests and fire unmarshal calls
-petrelUnmarshal(p, msg);
 p.reqq[2] = test4b;
-petrelUnmarshal(p, msg2);
 p.reqq[3] = test4c;
 petrelUnmarshal(p, msg3);
+petrelUnmarshal(p, msg2);
+petrelUnmarshal(p, msg);
 
 testHeader("5 - Message marshalling/unmarshalling + HMAC");
 p = new Petrel(50, "testkey");
