@@ -143,10 +143,21 @@ p2 = new PetrelClient(50, "badkey");  // new instance with different key
 p3 = new PetrelClient(50, "testkey"); // new instance with original key
 msg2 = petrelMarshal(p2, "test message"); // same message, different hmac
 function test5b() {
-    test("5.9 p.err should be HMAC mismatch", p3.err, "HMAC mismatch in request 0");
+    test("5.9 p3.err should be HMAC mismatch", p3.err, "HMAC mismatch in request 0");
+    test("5.10 p3.reqq[0] should be undefined", p3.reqq[0], undefined);
 }
 p3.reqq[0] = test5b;
 petrelUnmarshal(p3, msg2);
+
+testHeader("6 - Request dispatch");
+function test6(msg) {
+    test("6.x 1 = 1", 1, 1);
+}
+p = new PetrelClient();
+p.Dispatch("foo", test6);
+test("6.1 p.reqq should have 1 element", Object.keys(p.reqq).length, 1);
+test("6.2 p.seq should be 1", p.seq, 1);
+test("6.3 p.reqq[1] should be test6", p.reqq[1], test6);
 
 testHeader("X - Async test completions follow");
 // ----------------------------------------------------------  end tests

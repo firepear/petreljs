@@ -38,6 +38,50 @@ function PetrelClient(timeout, hmac, ws) {
     return this;
 }
 
+// petrelDispatch sends a request over the network. It takes two
+// arguments: the request message, and the function which should be
+// called when the response is received.
+function petrelDispatch(request, callback) {
+    if (this.err != null) {
+        throw "cannot dispatch request due to previous error";
+    }
+
+    // assemble full request
+    this.seq++;
+    try {
+        var msg = petrelMarshal(this, request);
+    } catch (e) {
+        this.error(e);
+        throw e;
+    }
+
+    // put req data into reqq
+    this.reqq[this.seq] = callback;
+
+    // send request
+    if (this.ws != undefined) {
+        try {
+            this.ws.send(msg);
+        }
+        catch (e) {
+            this.error("couldn't send request: " + e);
+            throw e;
+        }
+    }
+}
+
+// petrelError simply closes the ws and sets the client's err
+// attribute.
+function petrelError(errmsg) {
+    if (this.ws != undefined) {
+        this.ws.close();
+    }
+    this.err = errmsg;
+}
+
+
+
+// PetrelMsg represents a Petrel message.
 function PetrelMsg() {
     this.seq = null;
     this.plen = null;
@@ -49,6 +93,14 @@ function PetrelMsg() {
     return this;
 }
 
+// msgRebuild is a method of PetrelMsg instances. It is called by the
+// internal callbacks of petrelUnmarshal. It tests to see if all
+// attributes of a message are populated, and if so it invokes the
+// callback for its request.
+//
+// Unlike the original Go implementation, where request responders
+// only get the message payload, request callbacks in petreljs get the
+// entire message.
 function msgRebuild(p) {
     if (p.err != null) {
         return;
@@ -91,47 +143,9 @@ function msgRebuild(p) {
         p.error("callback for request " + this.seq + "is undefined");
         return;
     }
-    p.reqq[this.seq](this);
-}
-
-// petrelDispatch sends a request over the network. It takes two
-// arguments: the request message, and the function which should be
-// called when the response is received. petrel.error should always be
-// checked after calling Dispatch.
-function petrelDispatch(request, callback) {
-    if (this.err != null) {
-        throw "cannot dispatch request due to previous error";
-    }
-
-    // assemble full request
-    this.seq++;
-    try {
-        msg = petrelMarshal(this, request);
-    } catch (e) {
-        this.error(e);
-        throw e;
-    }
-
-    // put req data into reqq
-    this.reqq[this.seq] = callback;
-
-    // send request
-    if (this.ws != undefined) {
-        try {
-            this.ws.send(msg);
-        }
-        catch (e) {
-            this.error("couldn't send request: " + e);
-            throw e;
-        }
-    }
-}
-
-function petrelError(errmsg) {
-    if (this.ws != undefined) {
-        this.ws.close();
-    }
-    this.err = errmsg;
+    var responder = p.reqq[this.seq];
+    delete p.reqq[this.seq];
+    responder(this);
 }
 
 //////////////////////////////////////////////////// Utility functions
