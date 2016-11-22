@@ -154,7 +154,7 @@ function test6(msg) {
     test("6.x 1 = 1", 1, 1);
 }
 p = new PetrelClient();
-p.Dispatch("foo", test6);
+p.dispatch("foo", test6);
 test("6.1 p.reqq should have 1 element", Object.keys(p.reqq).length, 1);
 test("6.2 p.seq should be 1", p.seq, 1);
 test("6.3 p.reqq[1] should be test6", p.reqq[1], test6);
