@@ -34,8 +34,6 @@ function PetrelClient(timeout, hmac, ws) {
     // assign methods
     this.Dispatch = petrelDispatch;
     this.error = petrelError;
-
-    return this;
 }
 
 // petrelDispatch sends a request over the network. It takes two
@@ -90,7 +88,6 @@ function PetrelMsg() {
     this.hmac = null;
     this.verifiedmac = false;
     this.rebuild = msgRebuild;
-    return this;
 }
 
 // msgRebuild is a method of PetrelMsg instances. It is called by the
