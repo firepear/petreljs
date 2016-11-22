@@ -43,7 +43,7 @@ function PetrelClient(timeout, hmac, ws) {
 // called when the response is received.
 function petrelDispatch(request, callback) {
     if (this.err != null) {
-        throw "cannot dispatch request due to previous error";
+        throw 'cannot dispatch request due to previous error';
     }
 
     // assemble full request
@@ -110,10 +110,10 @@ function msgRebuild(p) {
     }
     // calculate and compare MAC if needed
     if (this.hmac != null) {
-        var shaObj = new jsSHA("SHA-256", "TEXT");
-        shaObj.setHMACKey(p.hmac, "TEXT");
+        var shaObj = new jsSHA('SHA-256', 'TEXT');
+        shaObj.setHMACKey(p.hmac, 'TEXT');
         shaObj.update(this.payload);
-        var calchmac = shaObj.getHMAC("B64");
+        var calchmac = shaObj.getHMAC('B64');
         // jsSHA does not appear to have a safe compare function for
         // HMACs, so we have to provide that, to avoid timing
         // attacks.
@@ -135,12 +135,12 @@ function msgRebuild(p) {
         if (failed == false) {
             this.verifiedmac = true;
         } else {
-            p.error("HMAC mismatch in request " + this.seq);
+            p.error('HMAC mismatch in request ' + this.seq);
         }
     }
     // invoke the callback for this message
     if (p.reqq[this.seq] == undefined) {
-        p.error("callback for request " + this.seq + "is undefined");
+        p.error('callback for request ' + this.seq + 'is undefined');
         return;
     }
     var responder = p.reqq[this.seq];
@@ -174,10 +174,10 @@ function petrelMarshal(p, payload) {
     // create a Blob and load it with data, generating the MAC if
     // needed.
     if (p.hmac != null) {
-        var shaObj = new jsSHA("SHA-256", "TEXT");
-        shaObj.setHMACKey(p.hmac, "TEXT");
+        var shaObj = new jsSHA('SHA-256', 'TEXT');
+        shaObj.setHMACKey(p.hmac, 'TEXT');
         shaObj.update(payload);
-        var hmac = shaObj.getHMAC("B64");
+        var hmac = shaObj.getHMAC('B64');
         var msg = new Blob([seq, plen, pver, hmac, payload]);
     } else {
         var msg = new Blob([seq, plen, pver, payload]);
@@ -215,7 +215,7 @@ function petrelUnmarshal(p, msgBlob) {
         msg.rebuild(p);
     };
     // then pver
-    var pverReader = new FileReader()
+    var pverReader = new FileReader();
     pverReader.onload = function(evt) {
         msg.pver = new Uint8Array(evt.target.result)[0];
         msg.rebuild(p);
@@ -242,7 +242,7 @@ function petrelUnmarshal(p, msgBlob) {
         payloadReader.onload = function(evt) {
             msg.payload = evt.target.result;
             msg.rebuild(p);
-        }
+        };
         payloadReader.readAsText(payloadRaw);
         // check for completeness just in case
         msg.rebuild(p);
