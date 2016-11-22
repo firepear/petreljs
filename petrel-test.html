@@ -31,29 +31,27 @@ function test(msg, a, b, invert) {
 }
 
 testHeader("1 - Instantiate empty Petrel obj");
-var p = new Petrel();
-test("1.1 p.error should initialize to false", p.error, false);
+var p = new PetrelClient();
+test("1.1 p.err should initialize to null", p.err, null);
 test("1.2 p.hmac should initialize to null", p.hmac, null);
 test("1.3 p.timeout should initialize to 0", p.timeout, 0);
 test("1.4 p.ws should initialize to undefined", p.ws, undefined);
 test("1.5 p.seq should initialize to 0", p.seq, 0);
-test("1.6 p.reqq should have length zero", Object.keys(p.reqq).length, 0);
-test("1.7 p.errq should have length zero", p.errq.length, 0);
+test("1.6 p.reqq should have zero elements", Object.keys(p.reqq).length, 0);
 
 testHeader("2 - Instantiate non-default Petrel obj");
-p = new Petrel(50, "foo");
-test("2.1 p.error should initialize to false", p.error, false);
+p = new PetrelClient(50, "foo");
+test("2.1 p.err should initialize to null", p.err, null);
 test("2.2 p.hmac should initialize to 'foo'", p.hmac, "foo");
 test("2.3 p.timeout should initialize to 50", p.timeout, 50);
 test("2.4 p.ws should initialize to undefined", p.ws, undefined);
 test("2.5 p.seq should initialize to 0", p.seq, 0);
-test("2.6 p.reqq should have length zero", Object.keys(p.reqq).length, 0);
-test("2.7 p.errq should have length zero", p.errq.length, 0);
+test("2.6 p.reqq should have zero elements", Object.keys(p.reqq).length, 0);
 
 testHeader("3 - Message marshalling");
-p = new Petrel();
+p = new PetrelClient();
 msg = petrelMarshal(p, "hello, world");
-test("3.1 p.errq should have length zero", p.errq.length, 0);
+test("3.1 p.err should be null", p.err, null);
 test("3.2 msg should be defined", msg, undefined, true);
 test("3.3 msg.size should be 21 (4+4+1+12)", msg.size, 21);
 p.seq = 1;
@@ -121,7 +119,7 @@ petrelUnmarshal(p, msg2);
 petrelUnmarshal(p, msg);
 
 testHeader("5 - Message marshalling/unmarshalling + HMAC");
-p = new Petrel(50, "testkey");
+p = new PetrelClient(50, "testkey");
 test("5.1 p.hmac should be 'testkey'", p.hmac, "testkey");
 msg = petrelMarshal(p, "test message");
 test("5.2 msg should have size 65 (4+4+1+44+12)", msg.size, 65);
@@ -137,16 +135,15 @@ function test5a(m) {
     test("5.5 msg.plen is 12", m.plen, 12);
     test("5.6 msg.pver is 0", m.pver, 0);
     test("5.7 msg.payload is 'test message'", m.payload, "test message");
-    test("5.8 p.errq should have length zero", p.errq.length, 0);
+    test("5.8 p.err should be null", p.err, null);
 }
 p.reqq[0] = test5a;
 petrelUnmarshal(p, msg);
-p2 = new Petrel(50, "badkey");  // new instance with different key
-p3 = new Petrel(50, "testkey"); // new instance with original key
+p2 = new PetrelClient(50, "badkey");  // new instance with different key
+p3 = new PetrelClient(50, "testkey"); // new instance with original key
 msg2 = petrelMarshal(p2, "test message"); // same message, different hmac
-function test5b(m) {
-    test("5.9 p3.errq should have length 1", p3.errq.length, 1);
-    test("5.10 err should be HMAC mismatch", p3.errq[0], "HMAC mismatch in request 0");
+function test5b() {
+    test("5.9 p.err should be HMAC mismatch", p3.err, "HMAC mismatch in request 0");
 }
 p3.reqq[0] = test5b;
 petrelUnmarshal(p3, msg2);

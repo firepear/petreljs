@@ -15,11 +15,11 @@
 //     * A live websocket instance, connected to the desired server
 //       endpoint.
 //
-// When any error occurs, the client's websocket is closed and
-// this.error is set to true. No work will be done after this, and a
-// new client should be instantiated.
-function Petrel(timeout, hmac, ws) {
-    this.error = false;
+// When any error occurs, an exception will be thrown and the current
+// client will do no further work, even if that exception is trapped.
+// A new client should be instantiated, with a new websocket.
+function PetrelClient(timeout, hmac, ws) {
+    this.err = null;
     this.hmac = hmac || null;
     this.timeout = timeout || 0;
     this.ws = ws;
@@ -31,13 +31,9 @@ function Petrel(timeout, hmac, ws) {
     // websocket callback fires.
     this.reqq = new Object();
 
-    // errq holds any error messages which are generated during
-    // operation. Error uses it to produce a traceback message.
-    this.errq = new Array();
-
     // assign methods
     this.Dispatch = petrelDispatch;
-    this.Error = petrelError;
+    this.error = petrelError;
 
     return this;
 }
@@ -54,6 +50,9 @@ function PetrelMsg() {
 }
 
 function msgRebuild(p) {
+    if (p.err != null) {
+        return;
+    }
     if (this.seq == null || this.plen == null || this.pver == null || this.payload == null) {
         return;
     }
@@ -84,13 +83,14 @@ function msgRebuild(p) {
         if (failed == false) {
             this.verifiedmac = true;
         } else {
-            p.error = true;
-            p.errq.push("HMAC mismatch in request " + this.seq);
+            p.error("HMAC mismatch in request " + this.seq);
         }
     }
-    // TODO3: error on pver mismatch
     // invoke the callback for this message
-    // TODO error handling for seq not existing in p.reqq
+    if (p.reqq[this.seq] == undefined) {
+        p.error("callback for request " + this.seq + "is undefined");
+        return;
+    }
     p.reqq[this.seq](this);
 }
 
@@ -99,34 +99,39 @@ function msgRebuild(p) {
 // called when the response is received. petrel.error should always be
 // checked after calling Dispatch.
 function petrelDispatch(request, callback) {
-    if (this.error) {
-        this.errq.push("can't dispatch request: error flag is set");
-        return;
+    if (this.err != null) {
+        throw "cannot dispatch request due to previous error";
     }
 
     // assemble full request
+    this.seq++;
+    try {
+        msg = petrelMarshal(this, request);
+    } catch (e) {
+        this.error(e);
+        throw e;
+    }
 
-    // put req data into reqq (seq, timestamp, callback)
+    // put req data into reqq
+    this.reqq[this.seq] = callback;
 
     // send request
     if (this.ws != undefined) {
         try {
-            this.ws.send(request);
+            this.ws.send(msg);
         }
         catch (e) {
-            this.errq.push("couldn't send request: " + e);
-            this.ws.close();
-            this.error = true;
+            this.error("couldn't send request: " + e);
+            throw e;
         }
     }
 }
 
-// petrelReceive is the callback for the instance's websocket. It
-// disassembles and checks the length prefix and HMAC (if any).
-function petrelReceive(p, event) {
-}
-
-function petrelError() {
+function petrelError(errmsg) {
+    if (this.ws != undefined) {
+        this.ws.close();
+    }
+    this.err = errmsg;
 }
 
 //////////////////////////////////////////////////// Utility functions
@@ -143,25 +148,15 @@ function petrelMarshal(p, payload) {
     var pver = new ArrayBuffer(1);
     // then uintNArrays to serve as "views", allowing us to store ints
     // of the approptiate sizes in the ArrayBuffers.
-    try {
-        var seqv = new Uint32Array(seq);
-        var plenv = new Uint32Array(plen);
-        var pverv = new Uint8Array(pver);
-    }
-    catch (e) {
-        p.errq.push(e);
-        return;
-    }
+    var seqv = new Uint32Array(seq);
+    var plenv = new Uint32Array(plen);
+    var pverv = new Uint8Array(pver);
+
     // now we slot our actual values into the views
-    try {
-        seqv[0] = p.seq;
-        plenv[0] = payload.length;
-        pverv[0] = p.pver;
-    }
-    catch (e) {
-        p.errq.push(e);
-        return;
-    }
+    seqv[0] = p.seq;
+    plenv[0] = payload.length;
+    pverv[0] = p.pver;
+
     // create a Blob and load it with data, generating the MAC if
     // needed.
     if (p.hmac != null) {
@@ -183,6 +178,9 @@ function petrelMarshal(p, payload) {
 // When unmarshalling is done, the callback for the originating
 // request will be called via msg.rebuild.
 function petrelUnmarshal(p, msgBlob) {
+    if (p.err != null) {
+        return;
+    }
     // first, create a Msg object for the FileReaders to work on and
     // set the default location for the head of the payload
     var msg = new PetrelMsg();
@@ -235,7 +233,7 @@ function petrelUnmarshal(p, msgBlob) {
         // check for completeness just in case
         msg.rebuild(p);
     };
-    // finally, call the readers
+    // finally, call the outer readers
     seqReader.readAsArrayBuffer(seqBlob);
     pverReader.readAsArrayBuffer(pverBlob);
     plenReader.readAsArrayBuffer(plenBlob);
