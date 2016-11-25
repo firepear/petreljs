@@ -6,21 +6,21 @@
 
 // Petrel is the constructor for new clients. It takes three arguments:
 //
+//     * A live websocket instance, connected to the desired server
+//       endpoint.
+//
 //     * The number of milliseconds to wait for a response from the
-//       server before giving up.
+//       server before giving up. (Default: 0; do not timeout.)
 //
 //     * The optional HMAC secret key. HMAC will be enabled for any
 //       value other than the empty string.
-//
-//     * A live websocket instance, connected to the desired server
-//       endpoint.
 //
 // When any error occurs, an exception will be thrown and the current
 // client will do no further work, even if that exception is trapped.
 // A new client should be instantiated, with a new websocket.
 "use strict";
 class PetrelClient {
-    constructor(timeout, hmac, ws) {
+    constructor(ws, timeout, hmac) {
         this.err = null;
         this.hmac = hmac || null;
         this.timeout = timeout || 0;
@@ -28,14 +28,13 @@ class PetrelClient {
         this.seq = 0;
         this.pver = 0;
 
+        ws.onmessage = this.receive;
+        ws.p = this;
+
         // reqq is the request "queue". When a request is dispatched,
         // information about it is stored here for retrieval when the
         // websocket callback fires.
         this.reqq = new Object();
-
-        // assign methods
-        //this.Dispatch = petrelDispatch;
-        //this.error = petrelError;
     }
 
     // dispatch sends a request over the network. It takes two
@@ -68,6 +67,13 @@ class PetrelClient {
                 throw e;
             }
         }
+    }
+
+    // receive accepts transmissions from the websocket, unmarshals
+    // them, which fires the appropriate callback via
+    // PetrelMsg.rebuild
+    receive(xmission) {
+        petrelUnmarshal(this.p, xmission.data);
     }
 
     // error simply closes the ws and sets the client's err attribute.
