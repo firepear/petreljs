@@ -111,9 +111,9 @@ p.seq++;
 msg2 = petrelMarshal(p, "foo");
 p.seq++;
 msg3 = petrelMarshal(p, "quux");
-p.reqq[1] = test4a; // fake requests and fire unmarshal calls
-p.reqq[2] = test4b;
-p.reqq[3] = test4c;
+p.reqq[1] = [test4a, "text"]; // fake requests and fire unmarshal calls
+p.reqq[2] = [test4b, "text"];
+p.reqq[3] = [test4c, "text"];
 petrelUnmarshal(p, msg3);
 petrelUnmarshal(p, msg2);
 petrelUnmarshal(p, msg);
@@ -137,7 +137,7 @@ function test5a(m) {
     test("5.7 msg.payload is 'test message'", m.payload, "test message");
     test("5.8 p.err should be null", p.err, null);
 }
-p.reqq[0] = test5a;
+p.reqq[0] = [test5a,];
 petrelUnmarshal(p, msg);
 p2 = new PetrelClient(null, 50, "badkey");  // new instance with different key
 p3 = new PetrelClient(null, 50, "testkey"); // new instance with original key
@@ -146,7 +146,7 @@ function test5b() {
     test("5.9 p3.err should be HMAC mismatch", p3.err, "HMAC mismatch in request 0");
     test("5.10 p3.reqq[0] should be undefined", p3.reqq[0], undefined);
 }
-p3.reqq[0] = test5b;
+p3.reqq[0] = [test5b,];
 petrelUnmarshal(p3, msg2);
 
 testHeader("6 - Request dispatch");

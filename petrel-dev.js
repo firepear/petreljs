@@ -40,9 +40,13 @@ class PetrelClient {
         this.reqq = new Object();
     }
 
-    // dispatch sends a request over the network. It takes two
-    // arguments: the request message, and the function which should
-    // be called when the response is received.
+    // dispatch sends a request over the network. It takes three
+    // arguments: the request message, the function which should be
+    // called when the response is received, and the mode in which the
+    // payload should be passed to that function.
+    //
+    // Valid modes are "text", "blob", and "json". Default is text
+    // mode.
     dispatch(request, callback, mode) {
         if (this.err != null) {
             throw 'cannot dispatch request due to previous error';
@@ -153,6 +157,7 @@ class PetrelMsg {
             return;
         }
         var responder = p.reqq[this.seq][0];
+        var pmode = p.reqq[this.seq][1];
         delete p.reqq[this.seq];
         responder(this);
     }
