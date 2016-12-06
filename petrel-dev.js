@@ -27,6 +27,7 @@ class PetrelClient {
         this.ws = ws;
         this.seq = 0;
         this.pver = 0;
+        this.VERSION = "0.2";
 
         if (this.ws != undefined) {
             ws.onmessage = this.receive;

@@ -18,11 +18,23 @@ function requestDatetime() {
     out.innerHTML += "Request " + pjs.seq + " dispatched.\n";
 }
 
-var wsaddr = "ws://localhost:60607/shim";
 var out = document.getElementById('output');
-out.innerHTML += 'Beginning demo 03-petreljs.\n';
 
-out.innerHTML += 'Instantiating websocket.\n';
+var loc = window.location;
+if (loc.search == "") {
+    out.innerHTML += "No websocket info given! Please add '?host=HOSTNAME&port=PORT&path=PATH' to URL\n";
+    out.innerHTML += "Ex: '?host=localhost&port=60607&path=shim' will point at 'ws://localhost:60607/shim'\n";
+    throw "No websocket info.";
+} else {
+    var args = decodeURI(loc.search).replace(/^\?/, '').split("&");
+    var wsconfig = new Object;
+    args.forEach(function(ele) { var s = ele.split("="); wsconfig[s[0]] = s[1]; });
+}
+
+var wsaddr = "ws://" + wsconfig["host"] + ":" + wsconfig["port"] + "/" + wsconfig["path"];
+out.innerHTML += 'Beginning petreljs demo.\n';
+
+out.innerHTML += 'Instantiating websocket (' + wsaddr + ').\n';
 var ws = new WebSocket(wsaddr);
 
 out.innerHTML += 'Instantiating PetrelClient.\n';
