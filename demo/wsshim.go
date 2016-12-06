@@ -58,7 +58,7 @@ func petrelShim(ws *websocket.Conn) {
 
 func main() {
 	flag.Parse()
-	http.Handle("/shim", websocket.Handler(petrelShim))
+	http.Handle("/wsshim", websocket.Handler(petrelShim))
 	log.Println("wsshim going active. C-c to kill.")
 	err := http.ListenAndServe(*wsaddr, nil)
 	if err != nil {

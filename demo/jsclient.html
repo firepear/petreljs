@@ -22,8 +22,8 @@ var out = document.getElementById('output');
 
 var loc = window.location;
 if (loc.search == "") {
-    out.innerHTML += "No websocket info given! Please add '?host=HOSTNAME&port=PORT&path=PATH' to URL\n";
-    out.innerHTML += "Ex: '?host=localhost&port=60607&path=shim' will point at 'ws://localhost:60607/shim'\n";
+    out.innerHTML += "No websocket info given! Please add '?host=HOSTNAME&port=PORT' to URL\n";
+    out.innerHTML += "Ex: '?host=localhost&port=60607' will point at 'ws://localhost:60607/wsshim'\n";
     throw "No websocket info.";
 } else {
     var args = decodeURI(loc.search).replace(/^\?/, '').split("&");
@@ -31,7 +31,7 @@ if (loc.search == "") {
     args.forEach(function(ele) { var s = ele.split("="); wsconfig[s[0]] = s[1]; });
 }
 
-var wsaddr = "ws://" + wsconfig["host"] + ":" + wsconfig["port"] + "/" + wsconfig["path"];
+var wsaddr = "ws://" + wsconfig["host"] + ":" + wsconfig["port"] + "/wsshim";
 out.innerHTML += 'Beginning petreljs demo.\n';
 
 out.innerHTML += 'Instantiating websocket (' + wsaddr + ').\n';
