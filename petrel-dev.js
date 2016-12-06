@@ -28,8 +28,10 @@ class PetrelClient {
         this.seq = 0;
         this.pver = 0;
 
-        ws.onmessage = this.receive;
-        ws.p = this;
+        if (this.ws != undefined) {
+            ws.onmessage = this.receive;
+            ws.p = this;
+        }
 
         // reqq is the request "queue". When a request is dispatched,
         // information about it is stored here for retrieval when the
@@ -40,7 +42,7 @@ class PetrelClient {
     // dispatch sends a request over the network. It takes two
     // arguments: the request message, and the function which should
     // be called when the response is received.
-    dispatch(request, callback) {
+    dispatch(request, callback, mode) {
         if (this.err != null) {
             throw 'cannot dispatch request due to previous error';
         }
@@ -55,7 +57,7 @@ class PetrelClient {
         }
 
         // put req data into reqq
-        this.reqq[this.seq] = callback;
+        this.reqq[this.seq] = [callback, mode];
 
         // send request
         if (this.ws != undefined) {
@@ -149,7 +151,7 @@ class PetrelMsg {
             p.error('callback for request ' + this.seq + 'is undefined');
             return;
         }
-        var responder = p.reqq[this.seq];
+        var responder = p.reqq[this.seq][0];
         delete p.reqq[this.seq];
         responder(this);
     }
