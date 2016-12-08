@@ -9,18 +9,26 @@
   </body>
     <script>
     "use strict;"
+
+var out = document.getElementById('output');
+var loc = window.location;
+
+// displayDatetime is the callback for our 'time' request. It receives
+// an instance of PetrelMsg and prints to the page.
 function displayDatetime(msg) {
     out.innerHTML += "Request " + pjs.seq + " completed. Response: " + msg.payload + "\n";
 }
+
+// requestDateTime is the callback for clicking the "Send time
+// request" button. It dispatches the request and tells the page it
+// has done so.
 function requestDatetime() {
     out.innerHTML += "Time button clicked.\n";
     pjs.dispatch("time", displayDatetime);
     out.innerHTML += "Request " + pjs.seq + " dispatched.\n";
 }
 
-var out = document.getElementById('output');
-
-var loc = window.location;
+// this block extracts the websocket host and port from URL parameters
 if (loc.search == "") {
     out.innerHTML += "No websocket info given! Please add '?host=HOSTNAME&port=PORT' to URL\n";
     out.innerHTML += "Ex: '?host=localhost&port=60607' will point at 'ws://localhost:60607/wsshim'\n";
